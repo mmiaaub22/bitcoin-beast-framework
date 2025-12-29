@@ -1,4 +1,4 @@
-<! DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -14,13 +14,15 @@
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       min-height: 100vh;
+      margin: 0;
+      padding:  0;
     }
-    .card {
+    . card {
       background: rgba(30, 41, 59, 0.8);
       border: 1px solid #334155;
       border-radius:  12px;
-      padding:  20px;
-      margin:  15px 0;
+      padding: 20px;
+      margin: 15px 0;
       backdrop-filter: blur(10px);
     }
     .card. success {
@@ -32,14 +34,14 @@
       border: 1px solid #ef4444;
     }
     .balance-display {
-      font-size: 32px;
+      font-size:  32px;
       font-weight:  bold;
       font-family: 'Courier New', monospace;
       word-break: break-all;
     }
     .pending { color: #fbbf24; }
     . spendable { color: #22c55e; }
-    .danger { color: #ef4444; }
+    . danger-text { color: #ef4444; }
     button {
       background: #0070f3;
       color: white;
@@ -49,6 +51,7 @@
       cursor: pointer;
       font-weight: 600;
       transition: all 0.3s;
+      font-size: 14px;
     }
     button:hover {
       background: #0055cc;
@@ -68,6 +71,7 @@
       width: 100%;
       box-sizing: border-box;
       font-family: inherit;
+      font-size: 14px;
     }
     input:: placeholder, textarea::placeholder {
       color: #94a3b8;
@@ -81,45 +85,38 @@
       background: rgba(15, 23, 42, 0.8);
       border-left: 3px solid #0070f3;
       padding:  12px;
-      margin:  8px 0;
+      margin: 8px 0;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 12px;
     }
-    .tx-row.pending { border-left-color: #fbbf24; }
+    . tx-row. pending { border-left-color: #fbbf24; }
     .tx-row.confirmed { border-left-color: #22c55e; }
     .spinner {
       display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255, 255, 255, 0.3);
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
       border-radius: 50%;
       border-top-color: white;
       animation: spin 0.8s linear infinite;
+      margin-right: 8px;
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
     .tab-button {
       padding: 10px 20px;
-      border:  none;
+      border: none;
       background: rgba(255, 255, 255, 0.1);
       color: #fff;
       cursor: pointer;
       border-bottom: 2px solid transparent;
       transition: all 0.3s;
+      font-size: 14px;
     }
-    .tab-button.active {
+    .tab-button. active {
       background: #0070f3;
       border-bottom-color: #0070f3;
-    }
-    .copy-btn {
-      background: #334155;
-      padding: 5px 10px;
-      font-size: 12px;
-      margin-left: 10px;
-    }
-    .copy-btn:hover {
-      background: #475569;
     }
   </style>
 </head>
@@ -130,7 +127,7 @@
   <script src="https://unpkg.com/axios@1.6.0/dist/axios.min.js"></script>
 
   <script>
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect } = React;
 
     function BitcoinBeastApp() {
       const [activeTab, setActiveTab] = useState('wallet');
@@ -138,44 +135,40 @@
       const [address, setAddress] = useState('');
       const [balance, setBalance] = useState(null);
       const [utxos, setUtxos] = useState([]);
-      const [mempool_txs, setMempoolTxs] = useState([]);
       const [loading, setLoading] = useState(false);
-      const [monitoring, setMonitoring] = useState(false);
       const [error, setError] = useState('');
       const [success, setSuccess] = useState('');
       const [generatedWallet, setGeneratedWallet] = useState(null);
 
       const API_BASE = window.location.origin;
 
-      // ========== Wallet Generation ==========
       const generateNewWallet = async () => {
         setLoading(true);
         setError('');
         try {
           const res = await axios.post(`${API_BASE}/api/generate-wallet`, { network });
           setGeneratedWallet(res.data);
-          setSuccess('Wallet generated!  ⚠️ SAVE YOUR WIF SECURELY');
+          setSuccess('✅ Wallet generated!  SAVE YOUR WIF SECURELY');
         } catch (err) {
-          setError(err.response?.data?.error || err.message);
+          setError('❌ ' + (err.response?.data?.error || err.message));
         } finally {
           setLoading(false);
         }
       };
 
-      // ========== Add & Monitor Address ==========
       const addAddress = async () => {
         if (!address) {
-          setError('Enter an address');
+          setError('❌ Enter an address');
           return;
         }
         setLoading(true);
         setError('');
         try {
           await axios.post(`${API_BASE}/api/wallet/add-address`, { address, network });
-          setSuccess('Address added! ');
+          setSuccess('✅ Address added! ');
           await refreshBalance();
         } catch (err) {
-          setError(err. response?.data?.error || err. message);
+          setError('❌ ' + (err.response?. data?.error || err.message));
         } finally {
           setLoading(false);
         }
@@ -185,69 +178,44 @@
         if (!address) return;
         setLoading(true);
         try {
-          const [balRes, utxosRes, mempoolRes] = await Promise.all([
-            axios.get(`${API_BASE}/api/wallet/balance? address=${address}&network=${network}`),
+          const [balRes, utxosRes] = await Promise.all([
+            axios. get(`${API_BASE}/api/wallet/balance? address=${address}&network=${network}`),
             axios.get(`${API_BASE}/api/wallet/utxos?address=${address}&network=${network}`),
-            axios.get(`${API_BASE}/api/wallet/mempool?address=${address}&network=${network}`),
           ]);
           setBalance(balRes.data);
           setUtxos(utxosRes.data. utxos || []);
-          setMempoolTxs(Object.values(mempoolRes.data. pending_transactions || {}));
         } catch (err) {
-          setError(err. response?.data?.error || err. message);
+          setError('❌ ' + (err.response?.data?.error || err.message));
         } finally {
           setLoading(false);
         }
       };
 
-      const startMonitoring = async () => {
-        try {
-          await axios.post(`${API_BASE}/api/wallet/start-monitoring`, { address, network });
-          setMonitoring(true);
-          const interval = setInterval(refreshBalance, 10000);
-          window.monitoringInterval = interval;
-        } catch (err) {
-          setError('Failed to start monitoring');
-        }
-      };
-
-      const stopMonitoring = () => {
-        if (window.monitoringInterval) {
-          clearInterval(window.monitoringInterval);
-          setMonitoring(false);
-        }
-      };
-
-      useEffect(() => {
-        return () => stopMonitoring();
-      }, []);
-
       const copyToClipboard = (text) => {
-        navigator.clipboard. writeText(text);
-        setSuccess('Copied to clipboard!');
+        navigator.clipboard.writeText(text);
+        setSuccess('📋 Copied to clipboard!');
       };
 
       return (
-        <div className="max-w-6xl mx-auto p-4">
-          <h1 className="text-4xl font-bold mb-2">⚡ Bitcoin Beast Framework</h1>
-          <p className="text-gray-400 mb-6">Advanced Bitcoin wallet, UTXO tools, and attack simulation</p>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding:  '20px' }}>
+          <h1 style={{ fontSize: '32px', fontWeight:  'bold', marginBottom: '10px' }}>⚡ Bitcoin Beast Framework</h1>
+          <p style={{ color: '#cbd5e1', marginBottom: '20px' }}>Advanced Bitcoin wallet tools and educational attack simulations</p>
 
           {error && (
-            <div className="card danger">
-              ❌ {error}
-              <button onClick={() => setError('')} style={{ float: 'right' }}>×</button>
+            <div className="card danger" style={{ marginBottom: '15px' }}>
+              {error}
+              <button onClick={() => setError('')} style={{ float: 'right', background: 'transparent', color: '#ef4444' }}>×</button>
             </div>
           )}
           {success && (
-            <div className="card success">
-              ✅ {success}
-              <button onClick={() => setSuccess('')} style={{ float: 'right' }}>×</button>
+            <div className="card success" style={{ marginBottom: '15px' }}>
+              {success}
+              <button onClick={() => setSuccess('')} style={{ float: 'right', background: 'transparent', color: '#22c55e' }}>×</button>
             </div>
           )}
 
-          {/* Tab Navigation */}
-          <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #334155', marginBottom: '20px', marginTop: '20px' }}>
-            {['wallet', 'generate', 'attack', 'api'].map(tab => (
+          <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #334155', marginBottom: '20px' }}>
+            {['wallet', 'generate', 'api'].map(tab => (
               <button
                 key={tab}
                 className="tab-button"
@@ -259,113 +227,72 @@
               >
                 {tab === 'wallet' && '💳'}
                 {tab === 'generate' && '🔑'}
-                {tab === 'attack' && '⚔️'}
                 {tab === 'api' && '📚'}
                 {' '}{tab. charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>
 
-          {/* Wallet Monitor Tab */}
           {activeTab === 'wallet' && (
             <div>
               <div className="card">
-                <h2 className="text-2xl font-bold mb-4">💰 Monitor Address</h2>
-                <select value={network} onChange={(e) => setNetwork(e.target.value)} className="mb-4">
+                <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px' }}>💰 Monitor Address</h2>
+                <select value={network} onChange={(e) => setNetwork(e.target.value)} style={{ marginBottom: '10px' }}>
                   <option value="testnet">Bitcoin Testnet</option>
-                  <option value="mainnet">Bitcoin Mainnet</option>
+                  <option value="mainnet">Bitcoin Mainnet ⚠️</option>
                 </select>
                 <textarea
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Enter Bitcoin address (bc1q.. ., 1.. ., 3... )"
-                  style={{ height: '60px' }}
+                  style={{ height: '60px', marginTop: '10px' }}
                 />
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                   <button onClick={addAddress} disabled={loading || !address}>
                     {loading ? <span className="spinner"></span> : '➕'} Add Address
                   </button>
                   <button onClick={refreshBalance} disabled={loading || !address}>
-                    🔄 Refresh Now
+                    🔄 Refresh
                   </button>
                 </div>
               </div>
 
               {balance && (
-                <div>
-                  <div className="card success">
-                    <h2 className="text-xl font-bold mb-4">💳 Wallet Balance</h2>
-                    <div style={{ marginBottom: '20px' }}>
-                      <p className="text-gray-400 text-sm">Total Balance</p>
-                      <div className="balance-display">{(balance.total_balance / 100000000).toFixed(8)} BTC</div>
-                      <p className="text-gray-400 text-xs">{balance.total_balance. toLocaleString()} sats</p>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap:  '15px' }}>
-                      <div className="card">
-                        <p className="text-gray-400 text-sm">Spendable Balance</p>
-                        <div className="spendable" style={{ fontSize: '24px' }}>
-                          {(balance.spendable_balance / 100000000).toFixed(8)} BTC
-                        </div>
-                        <p className="text-gray-400 text-xs">{balance.spendable_balance.toLocaleString()} sats</p>
-                        <p className="text-green-400 text-xs mt-2">✓ Ready to spend (confirmed)</p>
+                <div className="card success">
+                  <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '15px' }}>💳 Wallet Balance</h2>
+                  <div style={{ marginBottom:  '15px' }}>
+                    <p style={{ color: '#cbd5e1', fontSize: '12px', marginBottom: '5px' }}>Total Balance</p>
+                    <div className="balance-display">{(balance.total_balance / 100000000).toFixed(8)} BTC</div>
+                    <p style={{ color: '#64748b', fontSize: '12px' }}>{balance.total_balance. toLocaleString()} sats</p>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap:  '15px' }}>
+                    <div className="card">
+                      <p style={{ color: '#cbd5e1', fontSize: '12px', marginBottom: '5px' }}>Spendable</p>
+                      <div className="spendable" style={{ fontSize: '20px', fontWeight: 'bold' }}>
+                        {(balance.spendable_balance / 100000000).toFixed(8)} BTC
                       </div>
-                      <div className="card">
-                        <p className="text-gray-400 text-sm">Pending Balance</p>
-                        <div className="pending" style={{ fontSize: '24px' }}>
-                          {(balance.pending_balance / 100000000).toFixed(8)} BTC
-                        </div>
-                        <p className="text-gray-400 text-xs">{balance.pending_balance.toLocaleString()} sats</p>
-                        <p className="text-yellow-400 text-xs mt-2">⏳ Waiting for confirmation</p>
+                    </div>
+                    <div className="card">
+                      <p style={{ color: '#cbd5e1', fontSize: '12px', marginBottom: '5px' }}>Pending</p>
+                      <div className="pending" style={{ fontSize:  '20px', fontWeight: 'bold' }}>
+                        {(balance.pending_balance / 100000000).toFixed(8)} BTC
                       </div>
                     </div>
                   </div>
-
-                  <div style={{ marginTop: '20px' }}>
-                    <button
-                      onClick={startMonitoring}
-                      disabled={monitoring}
-                      style={{
-                        background: monitoring ?  '#22c55e' : '#0070f3',
-                        width: '100%',
-                        padding: '15px',
-                        fontSize: '16px',
-                      }}
-                    >
-                      {monitoring ? '🔴 Monitoring Active' : '▶️ Start Live Monitoring'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {mempool_txs.length > 0 && (
-                <div className="card">
-                  <h2 className="text-2xl font-bold mb-4">🌊 Pending Transactions ({mempool_txs.length})</h2>
-                  {mempool_txs.map((tx, idx) => (
-                    <div key={idx} className="tx-row pending">
-                      <p style={{ fontSize: '12px', fontFamily: 'monospace', marginBottom: '5px' }}>
-                        {tx.txid ?  tx.txid. slice(0, 16) : 'n/a'}... 
-                      </p>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                        <span>⏳ 0 confirmations</span>
-                        <span>Fee: {tx.fee_rate ?  tx.fee_rate.toFixed(2) : '--'} sat/vB</span>
-                        <span className="pending">{tx.amount ?  (tx.amount / 100000000).toFixed(8) : '--'} BTC</span>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               )}
 
               {utxos.length > 0 && (
                 <div className="card">
-                  <h2 className="text-2xl font-bold mb-4">🔐 UTXOs ({utxos.length})</h2>
+                  <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '15px' }}>🔐 UTXOs ({utxos.length})</h2>
                   {utxos.map((utxo, idx) => (
                     <div key={idx} className={`tx-row ${utxo.is_confirmed ? 'confirmed' : 'pending'}`}>
                       <p style={{ fontSize: '11px', fontFamily: 'monospace', marginBottom: '5px' }}>
-                        {(utxo.txid || '').slice(0, 16)}.. .:  {utxo.vout}
+                        {(utxo.txid || '').slice(0, 16)}...:   {utxo.vout}
                       </p>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                         <span>{utxo.confirmations} confirmations</span>
-                        <span className={utxo.is_confirmed ? 'spendable' : 'pending'}>
+                        <span className={utxo.is_confirmed ? 'spendable' :  'pending'}>
                           {(utxo.value / 100000000).toFixed(8)} BTC
                         </span>
                       </div>
@@ -376,16 +303,15 @@
             </div>
           )}
 
-          {/* Generate Wallet Tab */}
           {activeTab === 'generate' && (
             <div className="card">
-              <h2 className="text-2xl font-bold mb-4">🔑 Generate New Wallet</h2>
-              <select value={network} onChange={(e) => setNetwork(e.target. value)} className="mb-4">
-                <option value="testnet">Bitcoin Testnet</option>
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px' }}>🔑 Generate New Wallet</h2>
+              <select value={network} onChange={(e) => setNetwork(e.target. value)} style={{ marginBottom: '10px' }}>
+                <option value="testnet">Bitcoin Testnet (Safe for testing)</option>
                 <option value="mainnet">Bitcoin Mainnet ⚠️ REAL MONEY</option>
               </select>
-              <button onClick={generateNewWallet} disabled={loading} style={{ width: '100%' }}>
-                {loading ? <span className="spinner"></span> :  '🔐'} Generate Wallet
+              <button onClick={generateNewWallet} disabled={loading} style={{ width: '100%', marginTop: '10px' }}>
+                {loading ? <span className="spinner"></span> : '🔐'} Generate Wallet
               </button>
 
               {generatedWallet && (
@@ -393,88 +319,39 @@
                   <div className="card danger">
                     ⚠️ <strong>SAVE THIS WIF SECURELY!</strong> Anyone with it can steal your funds. 
                   </div>
-
                   <div className="card">
-                    <p className="text-sm text-gray-400 mb-2">Network</p>
+                    <p style={{ color: '#cbd5e1', fontSize: '12px', marginBottom:  '5px' }}>Network</p>
                     <p style={{ fontSize: '16px', marginBottom: '15px' }}>{generatedWallet.network}</p>
 
-                    <p className="text-sm text-gray-400 mb-2">WIF (Private Key)</p>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <input
-                        type="text"
-                        value={generatedWallet.wif}
-                        readOnly
-                        style={{ margin: 0 }}
-                      />
-                      <button className="copy-btn" onClick={() => copyToClipboard(generatedWallet.wif)}>
-                        Copy
-                      </button>
-                    </div>
-
-                    <p className="text-sm text-gray-400 mb-2 mt-4">Recommended Address (P2WPKH)</p>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <input
-                        type="text"
-                        value={generatedWallet.recommended_address}
-                        readOnly
-                        style={{ margin: 0 }}
-                      />
-                      <button className="copy-btn" onClick={() => copyToClipboard(generatedWallet. recommended_address)}>
-                        Copy
-                      </button>
-                    </div>
-
-                    <p className="text-sm text-gray-400 mb-2 mt-4">Public Key</p>
-                    <input
-                      type="text"
-                      value={generatedWallet.publicKey}
+                    <p style={{ color:  '#cbd5e1', fontSize:  '12px', marginBottom: '5px' }}>WIF (Private Key)</p>
+                    <textarea
+                      value={generatedWallet.wif}
                       readOnly
-                      style={{ margin: 0, fontSize: '11px' }}
+                      style={{ height: '60px', marginTop:  '5px' }}
                     />
+                    <button onClick={() => copyToClipboard(generatedWallet.wif)} style={{ width: '100%', marginTop:  '5px' }}>
+                      📋 Copy WIF
+                    </button>
 
-                    <h3 className="text-lg font-bold mt-4 mb-2">All Address Types</h3>
-                    {Object.entries(generatedWallet.addresses).map(([type, data]) => (
-                      <div key={type} style={{ marginBottom: '15px' }}>
-                        <p className="text-sm text-gray-400">{data.type}</p>
-                        <input type="text" value={data.address} readOnly style={{ margin: 0 }} />
-                      </div>
-                    ))}
+                    <p style={{ color:  '#cbd5e1', fontSize:  '12px', marginBottom: '5px', marginTop: '15px' }}>Recommended Address</p>
+                    <textarea
+                      value={generatedWallet.recommended_address}
+                      readOnly
+                      style={{ height: '50px', marginTop: '5px' }}
+                    />
+                    <button onClick={() => copyToClipboard(generatedWallet.recommended_address)} style={{ width: '100%', marginTop:  '5px' }}>
+                      📋 Copy Address
+                    </button>
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* Attack Simulation Tab */}
-          {activeTab === 'attack' && (
-            <div className="card danger">
-              <h2 className="text-2xl font-bold mb-4">⚔️ Attack Simulation</h2>
-              <p style={{ marginBottom: '15px' }}>
-                For EDUCATIONAL and DEFENSIVE use only. Learn how merchants can be compromised.
-              </p>
-              <div style={{ marginTop: '20px' }}>
-                <p className="text-gray-400 mb-2">Available Attack Endpoints:</p>
-                <ul style={{ listStyle: 'disc', marginLeft: '20px', lineHeight: '1.8' }}>
-                  <li><code>/api/final-sequence-attack</code> - RBF double-spend</li>
-                  <li><code>/api/smart-fee-booster</code> - Fee optimization</li>
-                  <li><code>/api/merchant-targeted-broadcast</code> - Broadcast to merchants</li>
-                  <li><code>/api/delayed-doublespend</code> - Time-delayed attack</li>
-                  <li><code>/api/identical-inputs-exploit</code> - Conflicting inputs</li>
-                  <li><code>/api/webhook-vulnerability-scanner</code> - Webhook analysis</li>
-                  <li><code>/api/execute-full-attack</code> - Full orchestration</li>
-                </ul>
-                <p style={{ marginTop: '15px', color: '#fbbf24' }}>
-                  📖 Use API Docs tab to test these endpoints
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* API Docs Tab */}
           {activeTab === 'api' && (
             <div className="card">
-              <h2 className="text-2xl font-bold mb-4">📚 API Documentation</h2>
-              <p className="text-gray-400 mb-4">Full Swagger documentation available at:</p>
+              <h2 style={{ fontSize:  '24px', fontWeight: 'bold', marginBottom: '15px' }}>📚 API Documentation</h2>
+              <p style={{ color: '#cbd5e1', marginBottom: '15px' }}>Full Swagger documentation available at: </p>
               <a
                 href="/api-docs"
                 target="_blank"
@@ -486,19 +363,23 @@
                   borderRadius:  '6px',
                   textDecoration: 'none',
                   display: 'inline-block',
+                  marginBottom: '15px',
                 }}
               >
-                🔗 Open API Docs
+                🔗 Open Interactive API Docs
               </a>
-              <div className="card" style={{ marginTop: '20px' }}>
-                <h3 className="font-bold mb-2">Wallet Endpoints</h3>
-                <code style={{ fontSize: '12px', lineHeight: '1.6' }}>
-                  POST /api/wallet/add-address<br/>
-                  GET /api/wallet/balance<br/>
-                  GET /api/wallet/utxos<br/>
-                  GET /api/wallet/mempool<br/>
-                  GET /api/wallet/status<br/>
-                </code>
+              <div className="card" style={{ marginTop: '15px' }}>
+                <h3 style={{ fontWeight: 'bold', marginBottom: '10px' }}>Available Endpoints: </h3>
+                <ul style={{ listStyle: 'disc', marginLeft: '20px', lineHeight: '1.8', fontSize: '13px' }}>
+                  <li><code>POST /api/generate-wallet</code></li>
+                  <li><code>POST /api/wallet/add-address</code></li>
+                  <li><code>GET /api/wallet/balance</code></li>
+                  <li><code>GET /api/wallet/utxos</code></li>
+                  <li><code>GET /api/wallet/mempool</code></li>
+                  <li><code>POST /api/final-sequence-attack</code></li>
+                  <li><code>POST /api/smart-fee-booster</code></li>
+                  <li><code>GET /health</code></li>
+                </ul>
               </div>
             </div>
           )}
