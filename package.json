@@ -1,7 +1,7 @@
 {
   "name": "bitcoin-beast-framework",
   "version": "1.0.0",
-  "description": "Advanced Bitcoin payment/testing framework (defensive/educational only! )",
+  "description": "Advanced Bitcoin payment/testing framework",
   "main": "bitcoin-beast-framework.js",
   "scripts": {
     "start": "node bitcoin-beast-framework.js",
@@ -11,18 +11,18 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "bitcoinjs-lib": "^6.1.1",
-    "tiny-secp256k1": "^2.2.5",
-    "bip32": "^5.2.0",
+    "express": "^4.18.2",
+    "bitcoinjs-lib": "^6.1.5",
+    "tiny-secp256k1": "^2.2.3",
+    "bip32":  "^4.0.0",
     "axios": "^1.6.7",
     "morgan": "^1.10.0",
-    "helmet": "^7.0.0",
-    "express-rate-limit": "^7.0.0",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
-    "swagger-ui-express": "^5.2.2",
-    "dotenv": "^16.4.5",
-    "ws": "^8.14.0"
+    "swagger-ui-express": "^5.0.0",
+    "dotenv": "^16.3.1",
+    "ws": "^8.14.2"
   }
 }
