@@ -5,70 +5,48 @@ const ecc = require('tiny-secp256k1');
 const { BIP32Factory } = require('bip32');
 const axios = require('axios');
 const crypto = require('crypto');
-const morgan = require('morgan');
-const helmet = require('helmet');
+const WebSocket = require('ws');
 const rateLimit = require('express-rate-limit');
-const compression = require('compression');
-const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 
 // ---- Initialize Express App ----
-const app = express();
-const bip32 = BIP32Factory(ecc);
+const app = express(); // 👈 RIGHT HERE!
 
-// ======== SECURITY & MIDDLEWARE ========
+// =====================
+// SECURITY HEADERS + LOGGING
+// =====================
+const helmet = require('helmet');
+const morgan = require('morgan');
+const cors = require('cors');
+const compression = require('compression');
+
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan('dev'));
+app.use(compression());
+app.set('trust proxy', true);
 
-// CORS Configuration - More restrictive for production
+// ✅ FIXED CORS SETUP — ADD VERCEL FRONTEND DOMAIN HERE
 const allowedOrigins = [
   'http://localhost:3000',
-  'http://localhost:3001',
   'http://127.0.0.1:3000',
+  'https://bitcoin-beast-frontend.vercel.app' // 👈 Only add after Vercel deploy
 ];
 
-// Add Render deployment URL if available
-if (process.env.RENDER_EXTERNAL_URL) {
-  allowedOrigins.push(process.env.RENDER_EXTERNAL_URL);
-}
-
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    if (process.env.NODE_ENV === 'production') {
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('CORS not allowed'));
-      }
-    } else {
-      // Development: Allow all
-      callback(null, true);
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));
 
-app.use(compression());
+// ---- remaining imports / initialization
+const bip32 = BIP32Factory(ecc);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.set('trust proxy', true);
-
-// ======== ROOT ENDPOINT (API ONLY) ========
-app.get('/', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    message: 'Bitcoin Beast Backend is running 🚀',
-    version: '1.0.0',
-    endpoints: {
-      api_docs: '/api-docs',
-      health: '/health',
-      swagger_spec: '/swagger-spec.json',
-    }
-  });
-});
 
 // ======== NETWORK & API CONFIGURATION ========
 const NETWORKS = {
@@ -92,25 +70,25 @@ const getSwaggerSpec = () => {
     info: {
       title: 'Bitcoin Beast Framework API',
       version: '1.0.0',
-      description: 'Testnet/mainnet double-spend testing, fee attack simulation, merchant 0-conf risk assessment.  For DEFENSIVE and EDUCATIONAL USE ONLY.',
+      description: 'Testnet/mainnet double-spend testing, fee attack simulation, merchant 0-conf risk assessment. For DEFENSIVE and EDUCATIONAL USE ONLY.',
       contact: { name: 'sweetpie2929' },
     },
     servers: [{ url: baseUrl, description: 'API Server' }],
     paths: {
-      '/api/final-sequence-attack': { post: { summary: 'Simulate final-sequence and RBF attack', tags: ['Attacks'] }},
-      '/api/smart-fee-booster': { post: { summary: 'Fetch smart attack fee strategy', tags: ['Analysis'] }},
-      '/api/merchant-targeted-broadcast': { post: { summary: 'Broadcast TX to merchant nodes', tags: ['Broadcast'] }},
-      '/api/delayed-doublespend': { post: { summary: 'Schedule delayed double-spend', tags: ['Attacks'] }},
-      '/api/identical-inputs-exploit': { post: { summary: 'Create conflicting TXs', tags: ['Attacks'] }},
-      '/api/time-window-exploit': { post: { summary: 'Blueprint of a time-window based exploit', tags: ['Analysis'] }},
-      '/api/webhook-vulnerability-scanner': { post: { summary: 'List webhook vulnerabilities', tags: ['Analysis'] }},
-      '/api/execute-full-attack': { post: { summary: 'Full orchestration of a simulated attack', tags: ['Attacks'] }},
-      '/api/wallet/add-address': { post: { summary: 'Add address to monitor', tags: ['Wallet'] }},
-      '/api/wallet/balance': { get: { summary: 'Get wallet balance', tags: ['Wallet'] }},
-      '/api/wallet/utxos': { get: { summary: 'Get UTXOs', tags: ['Wallet'] }},
-      '/api/wallet/mempool': { get: { summary: 'Get mempool transactions', tags: ['Wallet'] }},
-      '/api/generate-wallet': { post: { summary: 'Generate new wallet', tags: ['Wallet'] }},
-      '/api/create-opreturn-tx': { post: { summary: 'Create OP_RETURN transaction', tags: ['Transactions'] }},
+      '/api/final-sequence-attack': { post: { summary: 'Simulate final-sequence and RBF attack', tags: ['Attacks'] } },
+      '/api/smart-fee-booster': { post: { summary: 'Fetch smart attack fee strategy', tags: ['Analysis'] } },
+      '/api/merchant-targeted-broadcast': { post: { summary: 'Broadcast TX to merchant nodes', tags: ['Broadcast'] } },
+      '/api/delayed-doublespend': { post: { summary: 'Schedule delayed double-spend', tags: ['Attacks'] } },
+      '/api/identical-inputs-exploit': { post: { summary: 'Create conflicting TXs', tags: ['Attacks'] } },
+      '/api/time-window-exploit': { post: { summary: 'Blueprint of a time-window based exploit', tags: ['Analysis'] } },
+      '/api/webhook-vulnerability-scanner': { post: { summary: 'List webhook vulnerabilities', tags: ['Analysis'] } },
+      '/api/execute-full-attack': { post: { summary: 'Full orchestration of a simulated attack', tags: ['Attacks'] } },
+      '/api/wallet/add-address': { post: { summary: 'Add address to monitor', tags: ['Wallet'] } },
+      '/api/wallet/balance': { get: { summary: 'Get wallet balance', tags: ['Wallet'] } },
+      '/api/wallet/utxos': { get: { summary: 'Get UTXOs', tags: ['Wallet'] } },
+      '/api/wallet/mempool': { get: { summary: 'Get mempool transactions', tags: ['Wallet'] } },
+      '/api/generate-wallet': { post: { summary: 'Generate new wallet', tags: ['Wallet'] } },
+      '/api/create-opreturn-tx': { post: { summary: 'Create OP_RETURN transaction', tags: ['Transactions'] } },
     }
   };
 };
@@ -213,7 +191,7 @@ app.post('/api/final-sequence-attack', (req, res) => {
         txid: tx1.getId(),
         hex: tx1.toHex(),
         destination: victim_address,
-        sequence: '0xffffffff (won\'t opt-in to RBF)',
+        sequence: "0xffffffff (won't opt-in to RBF)",
         fee: tx1_fee,
         broadcast_target: 'merchant_nodes',
       },
@@ -474,7 +452,7 @@ app.post('/api/time-window-exploit', (req, res) => {
       exploit_conditions: [
         'Merchant accepts 0-conf and auto-fulfills.',
         'Merchant does not double-spend check.',
-        'Fulfillment is instant (digital/dropship), no further checks.'
+        'Fulfillment is instant (digital/dropship), no further checks'
       ],
       vulnerability: 'Merchant ships product on 0-conf, giving attacker time window.',
     });
