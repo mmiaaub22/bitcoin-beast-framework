@@ -498,19 +498,6 @@ app.post('/api/webhook-vulnerability-scanner', async (req, res) => {
   }
 });
 
-// ========== ROUTE MOUNTING ========
-// Import wallet routes (place your route imports after the security block)
-const walletRoutes = require('./example-express-wallet-routes');
-const walletGenRoutes = require('./routes/wallet-gen');
-const utxoFetchRoutes = require('./routes/utxo-fetch');
-const opReturnRoutes = require('./routes/opreturn-tx');
-
-// Mount all routes
-app.use('/api', walletRoutes);        // /api/wallet/* endpoints
-app.use('/api', walletGenRoutes);     // /api/generate-wallet
-app.use('/api', utxoFetchRoutes);     // /api/utxos
-app.use('/api', opReturnRoutes);      // /api/create-opreturn-tx
-
 // ========== FULL ATTACK EXECUTION ORCHESTRATION ==========
 app.post('/api/execute-full-attack', async (req, res) => {
   try {
@@ -610,8 +597,22 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ========== ERROR HANDLERS ========
-// 404 handler
+// ===== ROOT STATUS ENDPOINT =====
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'Bitcoin Beast Backend is running 🚀',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      api_docs: '/api-docs',
+      swagger_spec: '/swagger-spec.json'
+    }
+  });
+});
+
+// ========== ERROR HANDLERS ==========
+ // 404 handler
 app.use((req, res) => {
   res.status(404).json({
     error: 'Route not found',
