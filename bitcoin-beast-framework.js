@@ -25,23 +25,27 @@ app.use(morgan('dev'));
 app.use(compression());
 app.set('trust proxy', true);
 
-// ✅ FIXED CORS SETUP — ADD VERCEL FRONTEND DOMAIN HERE
+// ✅ FIXED CORS SETUP — ALLOWED ORIGINS FOR FRONTEND + RENDER BACKEND
 const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
-  // Add your Vercel frontend domain after deployment:
-  // 'https://bitcoin-beast-frontend.vercel.app'
+  'https://b-frontend-nvvx.vercel.app',     // your actual Vercel frontend
+  'https://bitcoin-beast-framework-12.onrender.com'  // Render backend (self-calls allowed)
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // allow requests with no origin (curl, server-to-server)
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests from mobile Safari or other clients with no origin
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    callback(new Error('Not allowed by CORS'));
+
+    console.log("❌ BLOCKED ORIGIN:", origin);
+    return callback(new Error("Not allowed by CORS"));
   },
-  credentials: true,
+  credentials: true
 }));
 
 // ---- remaining initialization
