@@ -12,9 +12,9 @@ const swaggerUi = require('swagger-ui-express');
 // ---- Initialize Express App ----
 const app = express(); // 👈 RIGHT HERE!
 
-// =====================
+// =======================
 // SECURITY HEADERS + LOGGING
-// =====================
+// =======================
 const helmet = require('helmet');
 const morgan = require('morgan');
 const cors = require('cors');
@@ -29,11 +29,13 @@ app.set('trust proxy', true);
 const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
-  'https://bitcoin-beast-frontend.vercel.app' // 👈 Only add after Vercel deploy
+  // Add your Vercel frontend domain after deployment:
+  // 'https://bitcoin-beast-frontend.vercel.app'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
+    // allow requests with no origin (curl, server-to-server)
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
@@ -42,7 +44,7 @@ app.use(cors({
   credentials: true,
 }));
 
-// ---- remaining imports / initialization
+// ---- remaining initialization
 const bip32 = BIP32Factory(ecc);
 
 app.use(express.json({ limit: '10mb' }));
@@ -496,6 +498,19 @@ app.post('/api/webhook-vulnerability-scanner', async (req, res) => {
   }
 });
 
+// ========== ROUTE MOUNTING ========
+// Import wallet routes (place your route imports after the security block)
+const walletRoutes = require('./example-express-wallet-routes');
+const walletGenRoutes = require('./routes/wallet-gen');
+const utxoFetchRoutes = require('./routes/utxo-fetch');
+const opReturnRoutes = require('./routes/opreturn-tx');
+
+// Mount all routes
+app.use('/api', walletRoutes);        // /api/wallet/* endpoints
+app.use('/api', walletGenRoutes);     // /api/generate-wallet
+app.use('/api', utxoFetchRoutes);     // /api/utxos
+app.use('/api', opReturnRoutes);      // /api/create-opreturn-tx
+
 // ========== FULL ATTACK EXECUTION ORCHESTRATION ==========
 app.post('/api/execute-full-attack', async (req, res) => {
   try {
@@ -575,7 +590,7 @@ app.post('/api/execute-full-attack', async (req, res) => {
       expected: 'Attack will succeed if merchant ships on trust of 0-conf.',
       caveats: [
         'Fails if merchant waits for confirmation.',
-        'Merchant watches for conflicts (defensive setup).'
+        'Merchant watches for conflicts (defensive setup)'
       ],
       timeline: {
         phase1: { delay_ms: 0 },
@@ -589,19 +604,6 @@ app.post('/api/execute-full-attack', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// ========== ROUTE MOUNTING ========
-// Import wallet routes
-const walletRoutes = require('./example-express-wallet-routes');
-const walletGenRoutes = require('./routes/wallet-gen');
-const utxoFetchRoutes = require('./routes/utxo-fetch');
-const opReturnRoutes = require('./routes/opreturn-tx');
-
-// Mount all routes
-app.use('/api', walletRoutes);        // /api/wallet/* endpoints
-app.use('/api', walletGenRoutes);     // /api/generate-wallet
-app.use('/api', utxoFetchRoutes);     // /api/utxos
-app.use('/api', opReturnRoutes);      // /api/create-opreturn-tx
 
 // Health check endpoint (for Render)
 app.get('/health', (req, res) => {
