@@ -170,6 +170,15 @@ app.post('/api/generate-wallet', (req, res) => {
   }
 });
 
+// Ensure ./routes/wallet-gen is mounted if present
+try {
+  const walletGenRoutes = require('./routes/wallet-gen');
+  app.use('/api', walletGenRoutes);
+  console.log('Mounted ./routes/wallet-gen');
+} catch (e) {
+  console.warn('wallet-gen not mounted:', e.message);
+}
+
 // ========== FINAL SEQUENCE ATTACK ==========
 app.post('/api/final-sequence-attack', (req, res) => {
   try {
