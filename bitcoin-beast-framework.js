@@ -35,7 +35,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests from mobile Safari or other clients with no origin
+    // Allow requests from mobile Safari (no origin)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
@@ -139,6 +139,36 @@ function validateWIF(wif, net) {
     return false;
   }
 }
+
+// -----------------------------
+// Quick generate-wallet route
+// -----------------------------
+// Added here so POST /api/generate-wallet responds (prevents the "Route not found" 404).
+app.post('/api/generate-wallet', (req, res) => {
+  try {
+    const networkName = (req.body && req.body.network) || 'testnet';
+    const net = NETWORKS[networkName] || NETWORKS.testnet;
+
+    // create random keypair
+    const keyPair = bitcoin.ECPair.makeRandom({ network: net });
+    const wif = keyPair.toWIF();
+
+    // recommend a native segwit address (p2wpkh)
+    const payment = bitcoin.payments.p2wpkh({
+      pubkey: keyPair.publicKey,
+      network: net,
+    });
+
+    return res.json({
+      wif,
+      recommended_address: payment.address,
+      network: networkName,
+    });
+  } catch (err) {
+    console.error('generate-wallet error', err);
+    return res.status(500).json({ error: String(err.message) });
+  }
+});
 
 // ========== FINAL SEQUENCE ATTACK ==========
 app.post('/api/final-sequence-attack', (req, res) => {
