@@ -65,6 +65,96 @@ const MEMPOOL_APIS = {
   mainnet: 'https://mempool.space/api',
 };
 
+// ===============================
+//  GENERATE WALLET HELPERS
+// ===============================
+function pickNetworkFromRequest(req) {
+  // Prefer body.network (POST JSON)
+  if (req.body && typeof req.body.network === 'string') {
+    return req.body.network;
+  }
+
+  // Fallback: query.network for GET / testing
+  if (req.query && typeof req.query.network === 'string') {
+    return req.query.network;
+  }
+
+  // Default
+  return 'testnet';
+}
+
+// ===============================
+//  POST /api/generate-wallet
+// ===============================
+// Accepts JSON body: { "network": "testnet" | "mainnet" }  (optional)
+app.post('/api/generate-wallet', (req, res) => {
+  console.log('🔥 /api/generate-wallet POST hit. Body:', req.body || null);
+
+  try {
+    const networkName = pickNetworkFromRequest(req);   // "testnet" | "mainnet"
+    const net = NETWORKS[networkName] || NETWORKS.testnet;
+
+    // Create random keypair
+    const keyPair = bitcoin.ECPair.makeRandom({ network: net });
+    const wif = keyPair.toWIF();
+
+    // Native SegWit address (P2WPKH)
+    const payment = bitcoin.payments.p2wpkh({
+      pubkey: keyPair.publicKey,
+      network: net,
+    });
+
+    return res.json({
+      ok: true,
+      network: networkName,
+      wif,
+      recommended_address: payment.address,
+    });
+  } catch (err) {
+    console.error('❌ /api/generate-wallet error:', err);
+    return res.status(500).json({
+      ok: false,
+      error: String(err.message || err),
+    });
+  }
+});
+
+// ===============================
+//  GET /api/generate-wallet  (optional, for quick testing)
+// ===============================
+// Example:
+//   GET /api/generate-wallet
+//   GET /api/generate-wallet?network=testnet
+app.get('/api/generate-wallet', (req, res) => {
+  console.log('🔥 /api/generate-wallet GET hit. Query:', req.query || null);
+
+  try {
+    const networkName = pickNetworkFromRequest(req);
+    const net = NETWORKS[networkName] || NETWORKS.testnet;
+
+    const keyPair = bitcoin.ECPair.makeRandom({ network: net });
+    const wif = keyPair.toWIF();
+
+    const payment = bitcoin.payments.p2wpkh({
+      pubkey: keyPair.publicKey,
+      network: net,
+    });
+
+    return res.json({
+      ok: true,
+      network: networkName,
+      wif,
+      recommended_address: payment.address,
+    });
+  } catch (err) {
+    console.error('❌ /api/generate-wallet (GET) error:', err);
+    return res.status(500).json({
+      ok: false,
+      error: String(err.message || err),
+    });
+  }
+});
+
 // ======== SWAGGER DOCUMENTATION ========
 const getSwaggerSpec = () => {
   const baseUrl = process.env.NODE_ENV === 'production' && process.env.RENDER_EXTERNAL_URL
@@ -93,7 +183,7 @@ const getSwaggerSpec = () => {
       '/api/wallet/balance': { get: { summary: 'Get wallet balance', tags: ['Wallet'] } },
       '/api/wallet/utxos': { get: { summary: 'Get UTXOs', tags: ['Wallet'] } },
       '/api/wallet/mempool': { get: { summary: 'Get mempool transactions', tags: ['Wallet'] } },
-      '/api/generate-wallet': { post: { summary: 'Generate new wallet', tags: ['Wallet'] } },
+      '/api/generate-wallet': { post: { summary: 'Generate new wallet', tags: ['Wallet'] }, get: { summary: 'Generate new wallet (GET)', tags: ['Wallet'] } },
       '/api/create-opreturn-tx': { post: { summary: 'Create OP_RETURN transaction', tags: ['Transactions'] } },
     }
   };
@@ -139,36 +229,6 @@ function validateWIF(wif, net) {
     return false;
   }
 }
-
-// -----------------------------
-// Quick generate-wallet route
-// -----------------------------
-// Added here so POST /api/generate-wallet responds (prevents the "Route not found" 404).
-app.post('/api/generate-wallet', (req, res) => {
-  try {
-    const networkName = (req.body && req.body.network) || 'testnet';
-    const net = NETWORKS[networkName] || NETWORKS.testnet;
-
-    // create random keypair
-    const keyPair = bitcoin.ECPair.makeRandom({ network: net });
-    const wif = keyPair.toWIF();
-
-    // recommend a native segwit address (p2wpkh)
-    const payment = bitcoin.payments.p2wpkh({
-      pubkey: keyPair.publicKey,
-      network: net,
-    });
-
-    return res.json({
-      wif,
-      recommended_address: payment.address,
-      network: networkName,
-    });
-  } catch (err) {
-    console.error('generate-wallet error', err);
-    return res.status(500).json({ error: String(err.message) });
-  }
-});
 
 // Ensure ./routes/wallet-gen is mounted if present
 try {
