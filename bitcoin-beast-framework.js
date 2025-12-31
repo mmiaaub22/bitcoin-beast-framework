@@ -2,7 +2,21 @@ require('dotenv').config();
 const express = require('express');
 const bitcoin = require('bitcoinjs-lib');
 const ecc = require('tiny-secp256k1');
+
+// Required for bitcoinjs-lib v6+
+if (bitcoin.initEccLib) {
+  bitcoin.initEccLib(ecc);
+}
+
 const { BIP32Factory } = require('bip32');
+
+// CommonJS-safe import for ecpair (handles default and named exports)
+const ecpairPackage = require('ecpair');
+const ECPairFactory = ecpairPackage && (ecpairPackage.ECPairFactory || ecpairPackage.default || ecpairPackage);
+const ECPair = typeof ECPairFactory === 'function'
+  ? ECPairFactory(ecc)
+  : (() => { throw new Error('ECPairFactory not found in ecpair package — inspect require("ecpair")'); })();
+
 const axios = require('axios');
 const crypto = require('crypto');
 const WebSocket = require('ws');
@@ -10,7 +24,10 @@ const rateLimit = require('express-rate-limit');
 const swaggerUi = require('swagger-ui-express');
 
 // ---- Initialize Express App ----
-const app = express(); // 👈 RIGHT HERE!
+const app = express();
+
+// ---- remaining initialization
+const bip32 = BIP32Factory(ecc);
 
 // =======================
 // SECURITY HEADERS + LOGGING
@@ -29,8 +46,8 @@ app.set('trust proxy', true);
 const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
-  'https://b-frontend-nvvx.vercel.app',     // your actual Vercel frontend
-  'https://bitcoin-beast-framework-12.onrender.com'  // Render backend (self-calls allowed)
+  'https://b-frontend-nvvx.vercel.app',
+  'https://bitcoin-beast-framework-15.onrender.com'
 ];
 
 app.use(cors({
@@ -47,9 +64,6 @@ app.use(cors({
   },
   credentials: true
 }));
-
-// ---- remaining initialization
-const bip32 = BIP32Factory(ecc);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -94,8 +108,8 @@ app.post('/api/generate-wallet', (req, res) => {
     const networkName = pickNetworkFromRequest(req);   // "testnet" | "mainnet"
     const net = NETWORKS[networkName] || NETWORKS.testnet;
 
-    // Create random keypair
-    const keyPair = bitcoin.ECPair.makeRandom({ network: net });
+    // Use ECPair from ECPairFactory
+    const keyPair = ECPair.makeRandom({ network: net });
     const wif = keyPair.toWIF();
 
     // Native SegWit address (P2WPKH)
@@ -122,9 +136,6 @@ app.post('/api/generate-wallet', (req, res) => {
 // ===============================
 //  GET /api/generate-wallet  (optional, for quick testing)
 // ===============================
-// Example:
-//   GET /api/generate-wallet
-//   GET /api/generate-wallet?network=testnet
 app.get('/api/generate-wallet', (req, res) => {
   console.log('🔥 /api/generate-wallet GET hit. Query:', req.query || null);
 
@@ -132,7 +143,7 @@ app.get('/api/generate-wallet', (req, res) => {
     const networkName = pickNetworkFromRequest(req);
     const net = NETWORKS[networkName] || NETWORKS.testnet;
 
-    const keyPair = bitcoin.ECPair.makeRandom({ network: net });
+    const keyPair = ECPair.makeRandom({ network: net });
     const wif = keyPair.toWIF();
 
     const payment = bitcoin.payments.p2wpkh({
@@ -223,20 +234,11 @@ function validateAddress(address, net) {
 
 function validateWIF(wif, net) {
   try {
-    bitcoin.ECPair.fromWIF(wif, net);
+    ECPair.fromWIF(wif, net);   // use ECPair, not bitcoin.ECPair
     return true;
   } catch (e) {
     return false;
   }
-}
-
-// Ensure ./routes/wallet-gen is mounted if present
-try {
-  const walletGenRoutes = require('./routes/wallet-gen');
-  app.use('/api', walletGenRoutes);
-  console.log('Mounted ./routes/wallet-gen');
-} catch (e) {
-  console.warn('wallet-gen not mounted:', e.message);
 }
 
 // ========== FINAL SEQUENCE ATTACK ==========
@@ -256,7 +258,7 @@ app.post('/api/final-sequence-attack', (req, res) => {
       return res.status(400).json({ error: 'Invalid address(es) for network' });
     }
 
-    const keyPair = bitcoin.ECPair.fromWIF(wif, net);
+    const keyPair = ECPair.fromWIF(wif, net);
 
     // TX1 - appears non-RBF
     const tx1_fee = Math.ceil(150 * fee_rate);
@@ -474,7 +476,7 @@ app.post('/api/identical-inputs-exploit', (req, res) => {
       return res.status(400).json({ error: 'Invalid address' });
     }
 
-    const keyPair = bitcoin.ECPair.fromWIF(wif, net);
+    const keyPair = ECPair.fromWIF(wif, net);
     const transactions = [];
 
     utxos.forEach((utxo, utxo_idx) => {
@@ -625,7 +627,7 @@ app.post('/api/execute-full-attack', async (req, res) => {
       return res.status(400).json({ error: 'Invalid address' });
     }
 
-    const keyPair = bitcoin.ECPair.fromWIF(wif, net);
+    const keyPair = ECPair.fromWIF(wif, net);
 
     // Merchant TX
     const psbt1 = new bitcoin.Psbt({ network: net })
