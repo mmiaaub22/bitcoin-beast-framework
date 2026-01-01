@@ -1,11 +1,3 @@
-// server.js
-// Full revised server.js:
-// - CommonJS-safe ecpair import
-// - bitcoin.initEccLib(ecc) for bitcoinjs-lib v6+
-// - CORS whitelist includes your Vercel frontend domain
-// - Removed ./routes/wallet-gen mounting to avoid conflicts
-// - All dot-space syntax errors fixed
-
 require('dotenv').config();
 const express = require('express');
 const bitcoin = require('bitcoinjs-lib');
