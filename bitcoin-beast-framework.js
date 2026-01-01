@@ -1,3 +1,11 @@
+// server.js
+// Full revised server.js:
+// - CommonJS-safe ecpair import
+// - bitcoin.initEccLib(ecc) for bitcoinjs-lib v6+
+// - CORS whitelist includes your Vercel frontend domain
+// - Removed ./routes/wallet-gen mounting to avoid conflicts
+// - All dot-space syntax errors fixed
+
 require('dotenv').config();
 const express = require('express');
 const bitcoin = require('bitcoinjs-lib');
@@ -42,25 +50,26 @@ app.use(morgan('dev'));
 app.use(compression());
 app.set('trust proxy', true);
 
-// ✅ FIXED CORS SETUP — ALLOWED ORIGINS FOR FRONTEND + RENDER BACKEND
+// ===== CORS FIX (whitelist) =====
 const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'https://b-frontend-nvvx.vercel.app',
-  'https://bitcoin-beast-framework-15.onrender.com'
+  'https://b-frontend-g5p2.vercel.app',          // <-- your Vercel frontend (added)
+  'https://bitcoin-beast-framework-23.onrender.com'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests from mobile Safari (no origin)
+    // Allow apps like Safari, iOS, mobile apps (no origin)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 
-    console.log("❌ BLOCKED ORIGIN:", origin);
-    return callback(new Error("Not allowed by CORS"));
+    console.log('❌ BLOCKED ORIGIN:', origin);
+    return callback(new Error('CORS: Not allowed'));
   },
   credentials: true
 }));
@@ -298,7 +307,7 @@ app.post('/api/final-sequence-attack', (req, res) => {
         txid: tx1.getId(),
         hex: tx1.toHex(),
         destination: victim_address,
-        sequence: "0xffffffff (won't opt-in to RBF)",
+        sequence: '0xffffffff (won't opt-in to RBF)',
         fee: tx1_fee,
         broadcast_target: 'merchant_nodes',
       },
@@ -382,7 +391,7 @@ app.post('/api/merchant-targeted-broadcast', async (req, res) => {
         'https://api.blockchair.com/bitcoin/push/transaction',
       ],
     };
-    const targets = merchant_nodes.length ? merchant_nodes : default_nodes[network] || default_nodes['testnet'];
+    const targets = merchant_nodes.length ? merchant_nodes : default_nodes[network] || default_nodes.testnet;
     const results = [];
 
     for (const endpoint of targets) {
