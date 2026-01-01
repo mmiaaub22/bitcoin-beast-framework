@@ -1,3 +1,12 @@
+// server.js
+// Full revised server.js with the apostrophe-safe string change:
+// - Uses double quotes for sequence text that contains an apostrophe
+// - CommonJS-safe ecpair import
+// - bitcoin.initEccLib(ecc) for bitcoinjs-lib v6+
+// - CORS whitelist includes your Vercel frontend domain
+// - Removed ./routes/wallet-gen mounting to avoid conflicts
+// - All dot-space syntax errors fixed
+
 require('dotenv').config();
 const express = require('express');
 const bitcoin = require('bitcoinjs-lib');
@@ -299,7 +308,7 @@ app.post('/api/final-sequence-attack', (req, res) => {
         txid: tx1.getId(),
         hex: tx1.toHex(),
         destination: victim_address,
-        sequence: '0xffffffff (won't opt-in to RBF)',
+        sequence: "0xffffffff (won't opt-in to RBF)", // <-- SAFE: double quotes used to allow apostrophe
         fee: tx1_fee,
         broadcast_target: 'merchant_nodes',
       },
