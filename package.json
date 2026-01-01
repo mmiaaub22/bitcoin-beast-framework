@@ -2,14 +2,14 @@
   "name": "bitcoin-beast-backend",
   "version": "1.0.0",
   "description": "Backend for Bitcoin Beast Framework — educational/defensive double-spend and 0-conf testing tools.",
-  "main": "bitcoin-beast-framework.js",
+  "main": "server.js",
   "type": "commonjs",
   "engines": {
     "node": ">=18 <21"
   },
   "scripts": {
-    "start": "bitcoin-beast-framework.js",
-    "dev": "bitcoin-beast-framework.js",
+    "start": "server.js",
+    "dev": "server.js",
     "lint": "eslint . || true"
   },
   "keywords": [
